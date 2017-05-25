@@ -1,0 +1,184 @@
+program stack4;
+
+uses
+  crt;
+Type
+  Stack = ^St;
+  St = record
+  Data : Double;
+  Next : Stack;
+  end;
+var
+  StackPtr : Stack;
+
+Procedure push(info : Double);
+{Помещаем новое значение на вершину стека}
+   Var
+     newptr : stack;
+   Begin
+     new(newptr);
+     if newptr<>nil then begin
+       newptr^.Data := info;
+       newptr^.Next := StackPtr;  {ставим указатель нового элемента на вершину стека}
+       StackPtr := newptr;     {переносим указатель вершины стека на новый элемент}
+     end
+     else writeln(info, UTF8ToAnsi(' не было введено. Нет доступной памяти.'));
+End;
+
+Function isEmpty(x1 : stack): boolean; // преверка - не пустой ли стек
+Begin
+  isEmpty := (x1 = Nil);
+End;
+
+Function pop: Double;  // Удаление узла на вершине стека
+Var
+  tmptr : stack;
+  popvalue: Double;
+
+Begin
+  tmptr := StackPtr;
+  popvalue := StackPtr^.data;
+  StackPtr := StackPtr^.next;
+  dispose(tmptr);
+  pop := popvalue;
+End;
+
+Procedure instruction();
+begin
+   writeln(UTF8ToAnsi('Введите на выбор:'));
+   writeln(UTF8ToAnsi('1 - вставить число в стек'));
+   writeln(UTF8ToAnsi('2 - удалить число из стека'));
+   writeln(UTF8ToAnsi('0 - подсчитать выражение'));
+   writeln(UTF8ToAnsi('3 - закончить работу'));
+end;
+
+Procedure PrintStack(currentPtr : stack);   // Распечатка стека
+begin
+   if currentPtr = Nil then{проверяем, пуст ли стек}
+      WriteLn(UTF8ToAnsi('Стек пуст.'))
+   else begin
+      WriteLn(UTF8ToAnsi('Стек: '));
+      while currentPtr<>nil do begin
+            Write(currentPtr^.Data:6:0,' --> ');
+            currentPtr:=currentPtr^.Next
+      end;
+      Write(' Nil ');
+      WriteLn;
+   end;
+end;
+
+function Calculate(s : string) : Double;
+var
+  i,i0, k : integer;
+  s0 : string;
+  v0 : LongInt;
+  d0 : double;
+begin
+  i:=1;
+  while i<=Length(s) do begin
+    i0 :=0;
+    while ((i+i0)<=Length(s)) and (s[i+i0] in ['0'..'9']) do inc(i0);
+    if i0>0 then {нашли число в строке. поместим его в стек} begin
+      s0 := Copy(s,i,i0);
+      val(s0, v0, k);
+      Push(v0);
+      inc(i, i0);
+    end
+    else begin
+      case s[i] of
+       ' ' : begin end;
+       '+' : begin Push( Pop + Pop ); end;
+       '-' : begin Push( - Pop + Pop ); end;
+       '*' : begin Push( Pop * Pop ); end;
+       '/' : begin d0 := Pop;
+                if d0<>0
+                  then Push( Pop / d0 )
+                  else Push(999999999) end;
+      end;
+      inc(i);
+    end;
+  end;
+  Calculate := Pop;
+end;
+
+var
+  reg, pc, item: integer;
+  //StackPtr : Stack;
+  sInput : string;
+  Result : double;
+
+begin
+
+  clrscr;
+  if (ParamCount < 1) then begin
+     WriteLn(UTF8ToAnsi('Ошибка! Надо указать в командной строке требуемый параметр!'));
+     //Halt; {прерываем программу}
+  end;
+  pc:= ParamCount;
+  //fin:='';
+  while pc>0 do begin
+     case ParamStr(pc) of
+     '-h':  begin                 // вывод описания задания
+       writeln(UTF8ToAnsi('Написать программу в которой можно оперировать стеком, добавляя и удаляя из него элементы.'));
+       writeln(UTF8ToAnsi('В программу в постфиксной форме вводится арифметическое выражение.'));
+       writeln(UTF8ToAnsi('Посчитать его с помощью стека. '));
+       writeln(UTF8ToAnsi(''));
+     end;
+     '-i':                   // вывод ФИО автора
+        writeln(UTF8ToAnsi('Автор: Симонов Алексей Валерьевич'));
+     '-g':                   // вывод номера группы;
+        writeln(UTF8ToAnsi('Группа Т30-102Б-16'));
+     '-c': clrscr;           // очистка экрана перед началом работы;
+     '-e':;                  // ввод данных во время работы программы.
+
+
+     else {};
+     end;//case
+     dec(pc);
+  end;
+
+  instruction();
+  writeln('? ');
+  readln(reg);
+  while reg<>3 do begin
+        case reg of
+        0: begin
+           if StackPtr <> Nil then
+              while StackPtr <> Nil do pop;   // сначала очистим стек полностью
+           writeln(UTF8ToAnsi('Введите строку с выражением в постфиксной форме '));
+           writeln(UTF8ToAnsi('(например: (2+3)*4-5*6) -> 2 3+4*5 6*- ):'));
+           Readln(sInput);
+           Result := Calculate(sInput);
+           WriteLn(UTF8ToAnsi('Результат выражения " '),sInput,UTF8ToAnsi(' " равен '),Result:1:6);
+           //Readln;
+           //PrintStack(StackPtr);
+        end;
+        1: begin   // заталкивает число в стек
+           writeln(UTF8ToAnsi('Введите число'));
+           readln(item);
+           push(item);
+           PrintStack(StackPtr);
+        end;
+
+        2:begin    // выталкивает число из стека
+           if StackPtr <> Nil then begin
+              writeln;
+              write(UTF8ToAnsi('Удалили число '));
+              write('<',pop:6:0,'>');
+              writeln(UTF8ToAnsi('  из стека'));
+           end;
+           PrintStack(StackPtr);
+        end;
+        3:halt;
+        else begin
+          writeln(UTF8ToAnsi('Неправильный выбор, попробуйте еще раз.'));
+          instruction();
+          end;//else
+        end;//case
+        writeln('? ');
+        instruction();
+        readln(reg);
+  end;
+
+  //readln;
+end.
